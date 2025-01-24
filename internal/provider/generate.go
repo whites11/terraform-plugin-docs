@@ -95,6 +95,9 @@ type generator struct {
 	// providerDir is the absolute path to the root provider directory
 	providerDir string
 
+	// goBuildAdditionalArgs is the additional args to be passed to `go build` command.
+	goBuildAdditionalArgs []string
+
 	providerName         string
 	providersSchemaPath  string
 	renderedProviderName string
@@ -114,7 +117,7 @@ func (g *generator) warnf(format string, a ...interface{}) {
 	g.ui.Warn(fmt.Sprintf(format, a...))
 }
 
-func Generate(ui cli.Ui, providerDir, providerName, providersSchemaPath, renderedProviderName, renderedWebsiteDir, examplesDir, websiteTmpDir, templatesDir, tfVersion string, ignoreDeprecated bool) error {
+func Generate(ui cli.Ui, providerDir, providerName, providersSchemaPath, renderedProviderName, renderedWebsiteDir, examplesDir, websiteTmpDir, templatesDir, tfVersion string, ignoreDeprecated bool, goBuildAdditionalArgs []string) error {
 	// Ensure provider directory is resolved absolute path
 	if providerDir == "" {
 		wd, err := os.Getwd()
@@ -148,6 +151,8 @@ func Generate(ui cli.Ui, providerDir, providerName, providersSchemaPath, rendere
 	g := &generator{
 		ignoreDeprecated: ignoreDeprecated,
 		tfVersion:        tfVersion,
+
+		goBuildAdditionalArgs: goBuildAdditionalArgs,
 
 		providerDir:          providerDir,
 		providerName:         providerName,
@@ -744,7 +749,9 @@ func (g *generator) terraformProviderSchemaFromTerraform(ctx context.Context) (*
 	case "windows":
 		outFile = outFile + ".exe"
 	}
-	buildCmd := exec.Command("go", "build", "-o", outFile)
+	args := []string{"build", "-o", outFile}
+	args = append(args, g.goBuildAdditionalArgs...)
+	buildCmd := exec.Command("go", args...)
 	buildCmd.Dir = g.providerDir
 	// TODO: constrain env here to make it a little safer?
 	_, err = runCmd(buildCmd)
